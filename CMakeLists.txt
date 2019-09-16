@@ -3,14 +3,26 @@ project(dimeta)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(include_files
-        "include/dimeta/dimeta.hpp"
+set(block_files
+        "include/dimeta/block/and.hpp"
+        "include/dimeta/block/nand.hpp"
+        "include/dimeta/block/or.hpp"
+        "include/dimeta/block/nor.hpp"
+        "include/dimeta/block/buffer.hpp"
+        "include/dimeta/block/not.hpp")
+
+set(simulator_files
+        "include/dimeta/delay.hpp"
         "include/dimeta/primitives.hpp"
         "include/dimeta/future.hpp"
         "include/dimeta/scheduling.hpp"
+        "include/dimeta/simulator.hpp"
+        "include/dimeta/dimeta.hpp"
         "include/dimeta/detail/mpl/map.hpp"
         "include/dimeta/detail/mpl/sequence.hpp"
         "include/dimeta/detail/consistency.hpp")
+
+set(include_files ${simulator_files} ${block_files})
 
 add_library(dimeta INTERFACE)
 target_sources(dimeta INTERFACE ${include_files})

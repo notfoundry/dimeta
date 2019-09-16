@@ -2,8 +2,8 @@
 * Created by Mark Johnson on 6/22/2019.
 */
 
-#ifndef DIMETA_DIMETA_HPP
-#define DIMETA_DIMETA_HPP
+#ifndef DIMETA_SIMULATOR_HPP
+#define DIMETA_SIMULATOR_HPP
 
 #include <kvasir/mpl/algorithm/fold_left.hpp>
 #include <kvasir/mpl/algorithm/all.hpp>
@@ -185,4 +185,4 @@ namespace dm {
     };
 }
 
-#endif //DIMETA_DIMETA_HPP
+#endif //DIMETA_SIMULATOR_HPP

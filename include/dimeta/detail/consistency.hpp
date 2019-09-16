@@ -6,6 +6,10 @@
 #define DIMETA_CONSISTENCY_HPP
 
 #ifdef DIMETA_CONSISTENCY_CHECKS
+
+#include <cstddef>
+#include <utility>
+
 #define DIMETA_ASSERT(...) static_assert(__VA_ARGS__)
 
 namespace dm {

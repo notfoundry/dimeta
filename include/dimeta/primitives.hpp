@@ -5,10 +5,17 @@
 #ifndef DIMETA_PRIMITIVES_HPP
 #define DIMETA_PRIMITIVES_HPP
 
+#include <kvasir/mpl/algorithm/all.hpp>
+
 #include <kvasir/mpl/types/integral_constant.hpp>
+#include <kvasir/mpl/types/list.hpp>
 #include <kvasir/mpl/types/bool.hpp>
 
+#include <kvasir/mpl/utility/same_as.hpp>
 #include <kvasir/mpl/utility/is_instance.hpp>
+
+#include <kvasir/mpl/sequence/is_list.hpp>
+
 #include <dimeta/detail/consistency.hpp>
 
 namespace dm {
@@ -73,6 +80,7 @@ namespace dm {
 
     template <class T>
     using is_logic_connection = mpl::eager::is_instance<logic_connection, T>;
+
 
     template <
             class DelayIndex,
