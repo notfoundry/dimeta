@@ -41,18 +41,24 @@ using unit_and_cell = dmm::cell<
 ```
 
 Primitive gates are modeled through the `cell` type, which specifies a set of input wires, a output wire, the logic function used to compute the result of applying a set of inputs, and the delays for the gate operations. This last item raises an important point: delays for primitives must be given up-front. When cells are combined to form more complicated systems, the timing characteristics of those systems are derived from the delays of the primitive components.
-A cell alone isn’t enough to construct a system, however. A set of concrete inputs and outputs also have to exist for simulation to proceed, an example of which can be provided as in the case of the next example.  
+In the above example, A, B and O are all placeholders for a named `wire` type, which act as the fundamental units for connecting points in a system. 
+A cell alone isn’t enough to construct a system, however. The context in which the cell exists (even if doesn’t contain anything else!) also needs to be described, as well as a set of concrete input and output paths for simulation to proceed. An example of both these things is as shown in the next example.  
 
 ```C++
-template <class A, class B, class O>
+template <class A, class B, class C, class O>
 using example_assembly = dmm::assembly<
-        dmm::in<A, B>,
+        dmm::in<A, B, C>,
         dmm::out<O>,
-        unit_and_cell<A*, B*, O*>
+        unit_and_cell<A*, B*, wire<0>>,
+        unit_and_cell<wire<0>, C*, O*>
 >;
 
-using compiled_and = dmm::compile<example_assembly<dmm::wire<'A'>, dmm::wire<'B'>, dmm::wire<'C'>>>;
+using compiled_and = dmm::compile<example_assembly<dmm::wire<'A'>, dmm::wire<'B'>, dmm::wire<'C'>, dmm::wire<‘D’>>>;
 ```
+
+Logic systems are modeled through the `assembly` type, which act as a collection of cells and nested assemblies. In the example assembly above, two AND cells exist, chained together via a hidden inner wire. Any number of these inner wires can be specified in an assembly, allowing cells and other assemblies to be linked together in various combinations.
+Another point to note about assembly design is the use of pointer * markers on some wires. A pointer must be added to any external wire propagating down into a nested assembly or cell in order to disambiguate them from inner wires contained within.
+Once an assembly has been made, it can be converted into a simulation-ready form via the `compile` metafunction after making sure the final assembly is instantiated with concrete wires.
 
 ```C++
 using gate_simulation = dmm::simulate<
