@@ -11,4 +11,6 @@
 #include <dimeta/scheduling.hpp>
 #include <dimeta/simulator.hpp>
 
+#include <dimeta/macro/macro.hpp>
+
 #endif //DIMETA_DIMETA_HPP

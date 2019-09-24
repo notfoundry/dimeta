@@ -4,8 +4,8 @@
 #include <kvasir/mpl/types/list.hpp>
 
 #include <dimeta/dimeta.hpp>
-#include <dimeta/block/or.hpp>
-#include <dimeta/block/not.hpp>
+#include <dimeta/function/or_function.hpp>
+#include <dimeta/function/not_function.hpp>
 
 using namespace dm;
 
@@ -22,14 +22,14 @@ using netlist = list<
         list<logic_constant<logic::X>, logic_constant<logic::X>>,
         logic_constant<logic::X>,
         list<logic_connection<index_constant<1>, index_constant<0>>>,
-        block::or_
+        function::or_function
     >,
     netlist_element<
         index_constant<1>,
         list<logic_constant<logic::X>>,
         logic_constant<logic::X>,
         list<>,
-        block::not_
+        function::not_function
     >
 >;
 

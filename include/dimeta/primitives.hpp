@@ -7,6 +7,8 @@
 
 #include <kvasir/mpl/algorithm/all.hpp>
 
+#include <kvasir/mpl/functional/call.hpp>
+
 #include <kvasir/mpl/types/integral_constant.hpp>
 #include <kvasir/mpl/types/list.hpp>
 #include <kvasir/mpl/types/bool.hpp>

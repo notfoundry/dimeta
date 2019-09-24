@@ -2,13 +2,13 @@
 // Created by Mark on 9/15/2019.
 //
 
-#ifndef DIMETA_OR_HPP
-#define DIMETA_OR_HPP
+#ifndef DIMETA_OR_FUNCTION_HPP
+#define DIMETA_OR_FUNCTION_HPP
 
 #include <dimeta/primitives.hpp>
 
-namespace dm::block {
-    struct or_ {
+namespace dm::function {
+    struct or_function {
         constexpr static logic impl(logic a, logic b) {
             if (a == logic::H || b == logic::H) {
                 return logic::H;
@@ -24,4 +24,4 @@ namespace dm::block {
     };
 }
 
-#endif //DIMETA_OR_HPP
+#endif //DIMETA_OR_FUNCTION_HPP

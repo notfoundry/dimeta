@@ -15,6 +15,7 @@
 
 #include <kvasir/mpl/functions/arithmetic/increment.hpp>
 
+#include <kvasir/mpl/sequence/at.hpp>
 #include <kvasir/mpl/sequence/front.hpp>
 #include <kvasir/mpl/sequence/push_back.hpp>
 #include <kvasir/mpl/sequence/take.hpp>
@@ -24,7 +25,6 @@
 
 #include <kvasir/mpl/utility/always.hpp>
 #include <kvasir/mpl/utility/same_as.hpp>
-#include <kvasir/mpl/sequence/at.hpp>
 
 namespace dm::detail::mpl::map {
     namespace mpl = kvasir::mpl;
@@ -61,18 +61,20 @@ namespace dm::detail::mpl::map {
         using f = mpl::call<erase<K, mpl::push_back<mpl::list<K, V>, C>>, Es...>;
     };
 
-    template <class K, class F, class C = mpl::listify>
+    template <class E, class F, class C = mpl::listify>
     struct update {
+        using key = mpl::call<mpl::unpack<mpl::front<>>, E>;
+
         using update_if_uses_key = mpl::unpack<mpl::if_<
-                mpl::front<mpl::same_as<K>>,
+                mpl::front<mpl::same_as<key>>,
                 mpl::fork<mpl::front<>, F, mpl::listify>,
                 mpl::listify
         >>;
 
         template <class... Es>
         using f = mpl::call<mpl::if_<
-                contains<K>,
-                mpl::push_back<mpl::list<K, mpl::call<F, K, void>>, C>,
+                contains<key>,
+                mpl::push_back<E, C>,
                 mpl::transform<update_if_uses_key, C>
         >, Es...>;
     };

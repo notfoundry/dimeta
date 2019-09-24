@@ -2,18 +2,18 @@
 // Created by Mark on 9/15/2019.
 //
 
-#ifndef DIMETA_NAND_HPP
-#define DIMETA_NAND_HPP
+#ifndef DIMETA_NOR_FUNCTION_HPP
+#define DIMETA_NOR_FUNCTION_HPP
 
 #include <dimeta/primitives.hpp>
 
-namespace dm::block {
-    struct nand {
+namespace dm::function {
+    struct nor_function {
         constexpr static logic impl(logic a, logic b) {
-            if (a == logic::L || b == logic::L) {
-                return logic::H;
-            } else if (a == logic::H && b == logic::H) {
+            if (a == logic::H || b == logic::H) {
                 return logic::L;
+            } else if (a == logic::L && b == logic::L) {
+                return logic::H;
             } else {
                 return logic::X;
             }
@@ -24,4 +24,4 @@ namespace dm::block {
     };
 }
 
-#endif //DIMETA_NAND_HPP
+#endif //DIMETA_NOR_FUNCTION_HPP
