@@ -21,9 +21,14 @@ Care has been taken to make the simulation reasonably performant (types manipula
 
 ## Tutorial
 
+While individual headers for different components do exist, the easiest way to get started with dimeta is to pull in the mega-header.
 ```C++
 #include <dimeta/dimeta.hpp>
+```
 
+Having done that, both the simulation and compilation machinery will be available in the `dm` and `dm::macro` namespaces respectively.
+Since interacting with the netlist, scheduling and delay datatypes directly can get tedious, it’s generally recommended to use the macro machinery to create the gate systems for simulation. Here’s a basic AND gate to demonstrate.
+```C++
 namespace dmm = dm::macro;
 
 template <class A, class B, class O>
@@ -33,7 +38,12 @@ using unit_and_cell = dmm::cell<
         dm::function::and_function,
         dmm::fixed_delay<dm::time_constant<1>, dm::time_constant<1>>
 >;
+```
 
+Primitive gates are modeled through the `cell` type, which specifies a set of input wires, a output wire, the logic function used to compute the result of applying a set of inputs, and the delays for the gate operations. This last item raises an important point: delays for primitives must be given up-front. When cells are combined to form more complicated systems, the timing characteristics of those systems are derived from the delays of the primitive components.
+A cell alone isn’t enough to construct a system, however. A set of concrete inputs and outputs also have to exist for simulation to proceed, an example of which can be provided as in the case of the next example.  
+
+```C++
 template <class A, class B, class O>
 using example_assembly = dmm::assembly<
         dmm::in<A, B>,
@@ -42,7 +52,9 @@ using example_assembly = dmm::assembly<
 >;
 
 using compiled_and = dmm::compile<example_assembly<dmm::wire<'A'>, dmm::wire<'B'>, dmm::wire<'C'>>>;
+```
 
+```C++
 using gate_simulation = dmm::simulate<
         compiled_and,
         dmm::initial_conditions<
@@ -52,4 +64,3 @@ using gate_simulation = dmm::simulate<
         dmm::monitor_states<dmm::wire<'C'>>
 >;
 ```
-
