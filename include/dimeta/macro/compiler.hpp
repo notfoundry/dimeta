@@ -24,6 +24,7 @@
 #include <dimeta/delay.hpp>
 
 #include <dimeta/macro/primitives.hpp>
+#include <dimeta/macro/delay.hpp>
 
 #include <dimeta/detail/mpl/map.hpp>
 #include <dimeta/detail/consistency.hpp>
