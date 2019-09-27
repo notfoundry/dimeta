@@ -10,6 +10,7 @@
 #include <dimeta/macro/simulator.hpp>
 
 #include <dimeta/function/and_function.hpp>
+#include <dimeta/function/or_function.hpp>
 #include <dimeta/function/xor_function.hpp>
 
 namespace dmm = dm::macro;
@@ -19,6 +20,14 @@ using unit_and = dmm::cell<
         dmm::in<A, B>,
         dmm::out<O>,
         dm::function::and_function,
+        dmm::fixed_delay<dm::time_constant<1>, dm::time_constant<1>>
+>;
+
+template <class A, class B, class O>
+using unit_or = dmm::cell<
+        dmm::in<A, B>,
+        dmm::out<O>,
+        dm::function::or_function,
         dmm::fixed_delay<dm::time_constant<1>, dm::time_constant<1>>
 >;
 
@@ -46,7 +55,7 @@ using unit_full_adder = dmm::assembly<
 
         unit_half_adder<A*, B*, dmm::wire<0>, dmm::wire<1>>,
         unit_half_adder<dmm::wire<0>, CIn*, S*, dmm::wire<2>>,
-        unit_and<dmm::wire<1>, dmm::wire<2>, COut*>
+        unit_or<dmm::wire<1>, dmm::wire<2>, COut*>
 >;
 
 using adder = unit_full_adder<
