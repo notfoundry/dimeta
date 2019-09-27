@@ -2,8 +2,8 @@
 // Created by Mark on 9/15/2019.
 //
 
-#ifndef DIMETA_OR_FUNCTION_HPP
-#define DIMETA_OR_FUNCTION_HPP
+#ifndef DIMETA_XOR_FUNCTION_HPP
+#define DIMETA_XOR_FUNCTION_HPP
 
 #include <dimeta/primitives.hpp>
 
@@ -24,4 +24,4 @@ namespace dm::function {
     };
 }
 
-#endif //DIMETA_OR_FUNCTION_HPP
+#endif //DIMETA_XOR_FUNCTION_HPP
