@@ -49,34 +49,35 @@ namespace dm::macro {
             template <class LogicConnection>
             using schedule_event_from_connection = dm::scheduled_event<
                     time_constant<0>,
-            LogicConnection,
-            typename StateAssignment::logic
+                    LogicConnection,
+                    typename StateAssignment::logic
             >;
 
             template <class LogicConnectionList>
-            using schedule_connection_events = DIMETA_TMPL_ASSERT(!mpl::call<mpl::same_as<void>, LogicConnectionList>::value)
-            (mpl::call<
-                    mpl::unpack<mpl::transform<mpl::cfe<schedule_event_from_connection>>>,
-                    LogicConnectionList
-            >);
+            using schedule_connection_events = DIMETA_TMPL_ASSERT
+                    (!mpl::call<mpl::same_as<void>, LogicConnectionList>::value)
+                    (mpl::call<
+                            mpl::unpack<mpl::transform<mpl::cfe<schedule_event_from_connection>>>,
+                            LogicConnectionList
+                    >);
 
             template <class Wire>
             using get_renamed_wire = DIMETA_TMPL_LOG_ASSERT
-            (DIMETA_TMPL_LOG_CASE(mpl::call<mpl::unpack<dm::detail::mpl::map::contains<Wire>>, WireRenames>::value, Wire))
-            (mpl::call<mpl::unpack<dm::detail::mpl::map::get<Wire>>, WireRenames>);
+                    (DIMETA_TMPL_LOG_CASE(mpl::call<mpl::unpack<dm::detail::mpl::map::contains<Wire>>, WireRenames>::value, Wire))
+                    (mpl::call<mpl::unpack<dm::detail::mpl::map::get<Wire>>, WireRenames>);
 
             template <class... ConnectionMap>
             using f = DIMETA_TMPL_LOG_ASSERT
-            (DIMETA_TMPL_LOG_CASE
-                     (mpl::call<dm::detail::mpl::map::contains<get_renamed_wire<typename StateAssignment::wire>>, ConnectionMap...>::value,
-                      get_renamed_wire<typename StateAssignment::wire>,
-                      typename StateAssignment::wire),
-             DIMETA_TMPL_LOG_CASE(
-                     (mpl::call<mpl::size<>, ConnectionMap...>::value > 0)))
-            (mpl::call<
-                    dm::detail::mpl::map::get<get_renamed_wire<typename StateAssignment::wire>, mpl::cfe<schedule_connection_events>>,
-                    ConnectionMap...
-            >);
+                    (DIMETA_TMPL_LOG_CASE
+                             (mpl::call<dm::detail::mpl::map::contains<get_renamed_wire<typename StateAssignment::wire>>, ConnectionMap...>::value,
+                              get_renamed_wire<typename StateAssignment::wire>,
+                              typename StateAssignment::wire),
+                     DIMETA_TMPL_LOG_CASE(
+                             (mpl::call<mpl::size<>, ConnectionMap...>::value > 0)))
+                    (mpl::call<
+                            dm::detail::mpl::map::get<get_renamed_wire<typename StateAssignment::wire>, mpl::cfe<schedule_connection_events>>,
+                            ConnectionMap...
+                    >);
         };
 
         template <class CompiledModule, class InitialConditions, class MonitoredStates>
@@ -89,8 +90,8 @@ namespace dm::macro {
 
             using simulation = typename dm::logic_simulator<
                     event_scheduler<mpl::list<>, scheduled_events>,
-            typename CompiledModule::netlist,
-            typename CompiledModule::delay_map
+                    typename CompiledModule::netlist,
+                    typename CompiledModule::delay_map
             >::type;
 
 //            TODO: implement mapping original `wire` => simulated `netlist_element`

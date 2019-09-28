@@ -170,11 +170,13 @@ namespace dm {
         template <class Step, class PendingEvent>
         using process_event = mpl::call<Step, PendingEvent, Netlist, DelayMap>;
 
-        using type = typename mpl::call<
+        using step = mpl::call<
                 mpl::unpack<mpl::fold_left<mpl::cfe<process_event>, mpl::cfe<step_simulator>>>,
                 typename Scheduler::pending_events,
                 simulator_step<>
-        >::type;
+        >;
+
+        using type = typename step::type;
     };
 
     template <class Netlist, class DelayMap>

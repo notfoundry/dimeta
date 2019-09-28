@@ -91,14 +91,14 @@ namespace dm::macro {
             using make_name_change = name_change<Wire, wire<RenameCounter::value + Index::value>>;
 
             template <class... Wires>
-            using f = mpl::call<
-                    mpl::fork<
-                            mpl::listify,
-                            mpl::size<mpl::make_int_sequence<>>,
-                            mpl::zip_with<mpl::cfe<make_name_change>, mpl::cfe<rename_stack_frame>>
-                    >,
-                    Wires...
-            >;
+            using f =
+                    mpl::call<
+                            mpl::fork<
+                                    mpl::listify,
+                                    mpl::size<mpl::make_int_sequence<>>,
+                                    mpl::zip_with<mpl::cfe<make_name_change>,
+                                            mpl::cfe<rename_stack_frame>>>,
+                    Wires...>;
         };
 
         template <class C = mpl::listify>
@@ -107,8 +107,7 @@ namespace dm::macro {
             using f = mpl::call<
                         mpl::join<C>,
                         mpl::call<mpl::unpack<mpl::listify>, typename E::in>,
-                        mpl::call<mpl::unpack<mpl::listify>, typename E::out>
-            >;
+                        mpl::call<mpl::unpack<mpl::listify>, typename E::out>>;
         };
 
         template <class C = mpl::listify>
@@ -119,8 +118,7 @@ namespace dm::macro {
                             mpl::join<
                                     mpl::remove_if<mpl::is_pointer<>,
                                         dm::detail::mpl::seq::unique<C>>>>,
-                    Elements...
-            >;
+                    Elements...>;
         };
 
         template <class Module, class RenameStack, class RenameCounter>
@@ -168,45 +166,42 @@ namespace dm::macro {
         template <class C = mpl::identity>
         struct make_wire_connection_map {
             template <class WireConnectionMap, class WireInfo>
-            using update_wire_connection_map = mpl::call<
-                    mpl::unpack<
-                            dm::detail::mpl::map::update<
-                                    mpl::list<typename WireInfo::wire, mpl::list<typename WireInfo::connection>>,
-                                    update_wire_connection_list<WireInfo>
-                            >
-                    >,
-                    WireConnectionMap
-            >;
+            using update_wire_connection_map =
+                    mpl::call<
+                            mpl::unpack<
+                                    dm::detail::mpl::map::update<
+                                            mpl::list<typename WireInfo::wire, mpl::list<typename WireInfo::connection>>,
+                                            update_wire_connection_list<WireInfo>>>,
+                    WireConnectionMap>;
 
             template <class... WireInfo>
-            using build_connection_map_from_enumerated_wires = mpl::call<mpl::fold_left<mpl::cfe<update_wire_connection_map>, C>, mpl::list<>, WireInfo...>;
+            using build_connection_map_from_enumerated_wires =
+                    mpl::call<
+                            mpl::fold_left<
+                                    mpl::cfe<update_wire_connection_map>,
+                                            C>,
+                    mpl::list<>, WireInfo...>;
 
             template <class Cell, class Index>
-            using join_enumerated_cell_inputs = mpl::call<
-                    mpl::unpack<
-                        mpl::fork<
-                            mpl::listify,
-                            mpl::size<mpl::make_int_sequence<>>,
-                            mpl::zip_with<
-                                    mpl::push_back<Index, mpl::cfe<wire_index_info>>
-                            >
-                        >
-                    >,
-                    typename Cell::in
-            >;
+            using join_enumerated_cell_inputs =
+                    mpl::call<
+                            mpl::unpack<
+                                    mpl::fork<
+                                        mpl::listify,
+                                        mpl::size<mpl::make_int_sequence<>>,
+                                        mpl::zip_with<mpl::push_back<Index,
+                                                mpl::cfe<wire_index_info>>>>>,
+                    typename Cell::in>;
 
             template <class... Cells>
-            using f = mpl::call<
-                    mpl::fork<
-                            mpl::listify,
-                            mpl::size<mpl::make_int_sequence<>>,
-                            mpl::zip_with<
-                                    mpl::cfe<join_enumerated_cell_inputs>,
-                                    mpl::join<mpl::cfe<build_connection_map_from_enumerated_wires>>
-                            >
-                    >,
-                    Cells...
-            >;
+            using f =
+                    mpl::call<
+                        mpl::fork<
+                                mpl::listify,
+                                mpl::size<mpl::make_int_sequence<>>,
+                                mpl::zip_with<mpl::cfe<join_enumerated_cell_inputs>,
+                                        mpl::join<mpl::cfe<build_connection_map_from_enumerated_wires>>>>,
+                    Cells...>;
         };
 
 
@@ -226,6 +221,39 @@ namespace dm::macro {
         template <class... PathDelayEntries>
         struct expand_delay_macro<dm::macro::state_dependant_delay<PathDelayEntries...>> {
 //            using type =
+        };
+
+        template <class CellIndexMap, class DelayMap>
+        struct delay_data {
+            using cell_index_map = CellIndexMap;
+
+            using delay_map = DelayMap;
+        };
+
+        template <class C = mpl::identity>
+        struct delay_data_generator {
+
+            template <class Cell>
+            using compiled_delay_from_cell = typename expand_delay_macro<typename Cell::delay>::type;
+
+            template <class Cell>
+            using delay_from_cell = typename Cell::delay;
+
+            template <class Delay, class Index>
+            using cell_index_delay_entry = mpl::list<Delay, Index>;
+
+            using make_cell_index_map =
+                    mpl::transform<mpl::cfe<delay_from_cell>,
+                        dm::detail::mpl::seq::unique<
+                                mpl::fork<
+                                        mpl::listify,
+                                        mpl::size<mpl::make_int_sequence<>>,
+                                        mpl::zip_with<mpl::cfe<cell_index_delay_entry>>>>>;
+
+            using make_delay_map = mpl::transform<mpl::cfe<compiled_delay_from_cell>>;
+
+            template <class... Cells>
+            using f = mpl::call<mpl::fork<make_cell_index_map, make_delay_map, mpl::cfe<delay_data>>, Cells...>;
         };
     }
 
@@ -247,35 +275,35 @@ namespace dm::macro {
 
         using connection_map = mpl::call<mpl::unpack<detail::make_wire_connection_map<>>, flattened>;
 
-        template <class Cell>
-        using delay_entry_from_cell = typename detail::expand_delay_macro<typename Cell::delay>::type;
-
-        using delay_map = mpl::call<mpl::unpack<mpl::transform<mpl::cfe<delay_entry_from_cell>>>, flattened>;
+        using delay_data = mpl::call<mpl::unpack<detail::delay_data_generator<>>, flattened>;
 
         template <class Cell>
-        using fanout_for_cell = mpl::call<mpl::unpack<dm::detail::mpl::map::get<
-                mpl::call<mpl::unpack<mpl::front<>>, typename Cell::out>,
-                mpl::if_<mpl::same_as<void>, mpl::always<mpl::list<>>, mpl::identity>
-        >>, connection_map>;
+        using fanout_for_cell =
+                mpl::call<
+                        mpl::unpack<
+                                dm::detail::mpl::map::get<mpl::call<mpl::unpack<mpl::front<>>, typename Cell::out>,
+                                        mpl::if_<mpl::same_as<void>, mpl::always<mpl::list<>>, mpl::identity>>>,
+                connection_map>;
 
         template <class Cell, class Index>
         using netlist_element_from_cell = dm::netlist_element<
-                dm::index_constant<Index::value>,
+                dm::index_constant<mpl::call<mpl::unpack<dm::detail::mpl::map::get<typename Cell::delay>>, typename delay_data::cell_index_map>::value>,
                 mpl::call<mpl::unpack<mpl::transform<mpl::always<dm::logic_constant<dm::logic::X>>>>, typename Cell::in>,
                 dm::logic_constant<dm::logic::X>,
                 fanout_for_cell<Cell>,
                 typename Cell::gate_logic
         >;
 
-        using netlist = mpl::call<
-                mpl::unpack<mpl::fork<
-                        mpl::listify,
-                        mpl::size<mpl::make_int_sequence<>>,
-                        mpl::zip_with<mpl::cfe<netlist_element_from_cell>>>
-                >, flattened
-        >;
+        using netlist =
+                mpl::call<
+                        mpl::unpack<mpl::fork<
+                                mpl::listify,
+                                mpl::size<mpl::make_int_sequence<>>,
+                                mpl::zip_with<
+                                        mpl::cfe<netlist_element_from_cell>>>>,
+                flattened>;
 
-        using type = compiled_module<netlist, delay_map, connection_map, flattened, start_frame>;
+        using type = compiled_module<netlist, typename delay_data::delay_map, connection_map, flattened, start_frame>;
     };
 
     template <class Module>
