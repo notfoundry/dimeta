@@ -14,6 +14,7 @@
 #include <kvasir/mpl/functional/identity.hpp>
 
 #include <kvasir/mpl/functions/arithmetic/increment.hpp>
+#include <kvasir/mpl/functions/logical/logical_not.hpp>
 
 #include <kvasir/mpl/sequence/at.hpp>
 #include <kvasir/mpl/sequence/front.hpp>
@@ -46,13 +47,13 @@ namespace dm::detail::mpl::map {
     template <class K, class C = mpl::identity>
     struct contains {
         template <class... Es>
-        using f = mpl::call<get<K, mpl::same_as<void, C>>, Es...>;
+        using f = mpl::call<get<K, mpl::same_as<void, mpl::logical_not<C>>>, Es...>;
     };
 
     template <class K, class C = mpl::listify>
     struct erase {
         template <class... Es>
-        using f = mpl::call<mpl::remove_if<mpl::front<mpl::same_as<K>>, C>, Es...>;
+        using f = mpl::call<mpl::remove_if<mpl::unpack<mpl::front<mpl::same_as<K>>>, C>, Es...>;
     };
 
     template <class K, class V, class C = mpl::listify>
@@ -74,8 +75,8 @@ namespace dm::detail::mpl::map {
         template <class... Es>
         using f = mpl::call<mpl::if_<
                 contains<key>,
-                mpl::push_back<E, C>,
-                mpl::transform<update_if_uses_key, C>
+                mpl::transform<update_if_uses_key, C>,
+                mpl::push_back<E, C>
         >, Es...>;
     };
 
