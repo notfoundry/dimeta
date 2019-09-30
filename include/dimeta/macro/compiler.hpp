@@ -121,6 +121,13 @@ namespace dm::macro {
                     Elements...>;
         };
 
+
+        template <class NewCells, class RenameCounter>
+        struct assembly_flattening_state {
+            using new_cells = NewCells;
+            using rename_counter = RenameCounter;
+        };
+
         template <class Module, class RenameStack, class RenameCounter>
         struct assembly_flattener;
 
@@ -131,10 +138,20 @@ namespace dm::macro {
             using updated_stack = mpl::call<mpl::unpack<mpl::push_front<local_wires_in_children>>, RenameStack>;
             using updated_rename_counter = mpl::eager::plus<mpl::call<mpl::unpack<mpl::size<>>, local_wires_in_children>, RenameCounter>;
 
-            template <class Element>
-            using process_element = typename assembly_flattener<Element, updated_stack, updated_rename_counter>::type;
+            template <class OldState, class NewState>
+            using merge_flattening_step = assembly_flattening_state<
+                    mpl::call<mpl::join<>, typename OldState::new_cells, typename NewState::new_cells>,
+                    typename NewState::rename_counter
+            >;
 
-            using type = mpl::call<mpl::transform<mpl::cfe<process_element>, mpl::join<>>, Elements...>;
+            template <class State, class Element>
+            using advance_flattening_state = merge_flattening_step<State, typename assembly_flattener<Element, updated_stack, typename State::rename_counter>::type>;
+
+            using type =
+                    mpl::call<
+                            mpl::fold_left<
+                                    mpl::cfe<advance_flattening_state>>,
+                    assembly_flattening_state<mpl::list<>, updated_rename_counter>, Elements...>;
         };
 
         template <class In, class Out, class GateLogic, class Delay, class RenameStack, class RenameCounter>
@@ -144,10 +161,9 @@ namespace dm::macro {
 
             using new_in = translate<In, mpl::cfe<dm::macro::in>>;
             using new_out = translate<Out, mpl::cfe<dm::macro::out>>;
-            using new_delay = Delay;
-            using new_cell = cell<new_in, new_out, GateLogic, new_delay>;
+            using new_cell = cell<new_in, new_out, GateLogic, Delay>;
 
-            using type = mpl::list<new_cell>;
+            using type = assembly_flattening_state<mpl::list<new_cell>, RenameCounter>;
         };
 
 
@@ -271,7 +287,7 @@ namespace dm::macro {
         using start_frame = mpl::call<detail::join_element_inputs_and_outputs<detail::make_rename_frame_for_wires<mpl::uint_<0>>>, Module>;
         using start_index = mpl::call<mpl::unpack<mpl::size<>>, start_frame>;
 
-        using flattened = typename detail::assembly_flattener<Module, mpl::list<start_frame>, start_index>::type;
+        using flattened = typename detail::assembly_flattener<Module, mpl::list<start_frame>, start_index>::type::new_cells;
 
         using connection_map = mpl::call<mpl::unpack<detail::make_wire_connection_map<>>, flattened>;
 
