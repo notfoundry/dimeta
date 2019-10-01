@@ -71,9 +71,5 @@ using sim = dmm::simulate<
                 dmm::state_assignment<dmm::wire<'A'>, dm::logic::H>,
                 dmm::state_assignment<dmm::wire<'B'>, dm::logic::L>,
                 dmm::state_assignment<dmm::wire<'C','i','n'>, dm::logic::L>
-        >,
-        dmm::monitor_states<
-                dmm::wire<'S'>,
-                dmm::wire<'C','o','u','t'>
         >
 >;

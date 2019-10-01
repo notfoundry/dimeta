@@ -33,11 +33,30 @@ namespace dm::macro {
     template <class... StateAssignments>
     struct initial_conditions {};
 
-    template <class... Wires>
-    struct monitor_states {};
-
-    template <class Netlist>
+    template <class Netlist, typename RenameFrame, typename ConnectionMap>
     struct simulation_result {
+    private:
+        template <class WireConnection>
+        using get_netlist_element = mpl::call<mpl::unpack<mpl::at<typename WireConnection::gate_id>>, Netlist>;
+
+        template <class OriginalWire>
+        using probe_impl =
+                mpl::call<
+                        mpl::unpack<
+                                dm::detail::mpl::map::get<OriginalWire,
+                                        mpl::unpack<
+                                                mpl::front<
+                                                        mpl::cfe<get_netlist_element>>>>>,
+                ConnectionMap>;
+    public:
+        template <class Wire>
+        using probe =
+                mpl::call<
+                        mpl::unpack<
+                                dm::detail::mpl::map::get<Wire,
+                                        mpl::cfe<probe_impl>>>,
+                RenameFrame>;
+
         using netlist = Netlist;
     };
 
@@ -80,7 +99,7 @@ namespace dm::macro {
                     >);
         };
 
-        template <class CompiledModule, class InitialConditions, class MonitoredStates>
+        template <class CompiledModule, class InitialConditions>
         struct simulation_driver {
 
             template <class StateAssignment>
@@ -94,13 +113,12 @@ namespace dm::macro {
                     typename CompiledModule::delay_map
             >::type;
 
-//            TODO: implement mapping original `wire` => simulated `netlist_element`
-            using type = simulation_result<typename simulation::netlist>;
+            using type = simulation_result<typename simulation::netlist, typename CompiledModule::renames, typename CompiledModule::connections>;
         };
     }
 
-    template <class CompiledModule, class InitialConditions, class MonitoredStates>
-    using simulate = typename detail::simulation_driver<CompiledModule, InitialConditions, MonitoredStates>::type;
+    template <class CompiledModule, class InitialConditions>
+    using simulate = typename detail::simulation_driver<CompiledModule, InitialConditions>::type;
 }
 
 #endif //DIMETA_MACRO_SIMULATOR_HPP

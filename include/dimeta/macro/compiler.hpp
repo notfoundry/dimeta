@@ -8,6 +8,7 @@
 #include <kvasir/mpl/algorithm/transform.hpp>
 #include <kvasir/mpl/algorithm/zip_with.hpp>
 #include <kvasir/mpl/algorithm/remove_if.hpp>
+#include <kvasir/mpl/algorithm/filter.hpp>
 #include <kvasir/mpl/algorithm/fold_left.hpp>
 
 #include <kvasir/mpl/functional/bind.hpp>
@@ -35,7 +36,10 @@ namespace dm::macro {
         namespace mpl = kvasir::mpl;
 
         template <class OldName, class NewName>
-        struct name_change {};
+        struct name_change {
+            using old_name = OldName;
+            using new_name = NewName;
+        };
 
         template <class... NameChangeEntries>
         struct rename_stack_frame {};
@@ -167,6 +171,84 @@ namespace dm::macro {
         };
 
 
+        struct sentinel_function {
+            template <class A>
+            using f = A;
+        };
+
+        template <class Wire>
+        struct mark_as_sentinel;
+
+        template <auto... Xs>
+        struct mark_as_sentinel<wire<Xs...>> {
+            using type = wire<'S', Xs...>;
+        };
+
+        template <class Outputs>
+        struct invert_renamed_outputs {
+            template <class Rename>
+            using is_renamed_output =
+                    mpl::call<
+                            mpl::unpack<
+                                    dm::detail::mpl::set::contains<typename Rename::old_name>>,
+                    Outputs>;
+
+            template <class Rename>
+            using invert_names = name_change<typename Rename::new_name, typename Rename::old_name>;
+
+            template <class... Renames>
+            using f =
+                    mpl::call<
+                            mpl::filter<mpl::cfe<is_renamed_output>,
+                                    mpl::transform<mpl::cfe<invert_names>,
+                                            mpl::cfe<rename_stack_frame>>>,
+                    Renames...>;
+        };
+
+        template <class RenameFrame, class Outputs, class C = mpl::listify>
+        struct attach_output_sentinels {
+            using inverted_renames = mpl::call<mpl::unpack<invert_renamed_outputs<Outputs>>, RenameFrame>;
+
+            template <class Cell>
+            using get_cell_output = mpl::call<mpl::unpack<mpl::front<>>, typename Cell::out>;
+
+            template <class Cell>
+            using has_output_connection =
+                    mpl::call<
+                            mpl::unpack<
+                                    dm::detail::mpl::map::contains<get_cell_output<Cell>>>,
+                    inverted_renames>;
+
+            template <class OutputWire>
+            using make_sentinel_cell = cell<
+                    in<OutputWire>,
+                    out<typename mark_as_sentinel<OutputWire>::type>,
+                    sentinel_function,
+                    macro::fixed_delay<time_constant<1>, time_constant<1>>
+            >;
+
+            template <class... Cells>
+            using attach_sentinels =
+                    mpl::call<
+                            mpl::fork<
+                                    mpl::listify,
+                                    mpl::transform<mpl::cfe<get_cell_output>,
+                                            dm::detail::mpl::seq::unique<
+                                                    mpl::transform<mpl::cfe<make_sentinel_cell>>>>,
+                                    mpl::join<>>,
+                    Cells...>;
+
+            template <class... Cells>
+            using f = mpl::call<
+                    mpl::fork<
+                            mpl::remove_if<mpl::cfe<has_output_connection>>,
+                            mpl::filter<mpl::cfe<has_output_connection>,
+                                    mpl::cfe<attach_sentinels>>,
+                            mpl::join<>>,
+                    Cells...>;
+        };
+
+
         template <class Wire, class WireIndex, class CellIndex>
         struct wire_index_info {
             using wire = Wire;
@@ -273,12 +355,11 @@ namespace dm::macro {
         };
     }
 
-    template <class Netlist, class DelayMap, class ConnectionMap, class FlattenedCells, class WireRenames>
+    template <class Netlist, class DelayMap, class ConnectionMap, class WireRenames>
     struct compiled_module {
         using netlist = Netlist;
         using delay_map = DelayMap;
         using connections = ConnectionMap;
-        using cells = FlattenedCells;
         using renames = WireRenames;
     };
 
@@ -287,7 +368,9 @@ namespace dm::macro {
         using start_frame = mpl::call<detail::join_element_inputs_and_outputs<detail::make_rename_frame_for_wires<mpl::uint_<0>>>, Module>;
         using start_index = mpl::call<mpl::unpack<mpl::size<>>, start_frame>;
 
-        using flattened = typename detail::assembly_flattener<Module, mpl::list<start_frame>, start_index>::type::new_cells;
+        using initial_flattened = typename detail::assembly_flattener<Module, mpl::list<start_frame>, start_index>::type::new_cells;
+
+        using flattened = mpl::call<mpl::unpack<detail::attach_output_sentinels<start_frame, typename Module::out>>, initial_flattened>;
 
         using connection_map = mpl::call<mpl::unpack<detail::make_wire_connection_map<>>, flattened>;
 
@@ -319,7 +402,7 @@ namespace dm::macro {
                                         mpl::cfe<netlist_element_from_cell>>>>,
                 flattened>;
 
-        using type = compiled_module<netlist, typename delay_data::delay_map, connection_map, flattened, start_frame>;
+        using type = compiled_module<netlist, typename delay_data::delay_map, connection_map, start_frame>;
     };
 
     template <class Module>
