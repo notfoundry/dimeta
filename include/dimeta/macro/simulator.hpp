@@ -41,13 +41,13 @@ namespace dm::macro {
 
         template <class OriginalWire>
         using probe_impl =
-                mpl::call<
+                typename mpl::call<
                         mpl::unpack<
                                 dm::detail::mpl::map::get<OriginalWire,
                                         mpl::unpack<
                                                 mpl::front<
                                                         mpl::cfe<get_netlist_element>>>>>,
-                ConnectionMap>;
+                ConnectionMap>::output;
     public:
         template <class Wire>
         using probe =

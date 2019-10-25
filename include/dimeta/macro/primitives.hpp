@@ -20,8 +20,11 @@
 namespace dm::macro {
     namespace mpl = kvasir::mpl;
 
-    template <auto...>
-    struct wire {};
+    template <auto... Xs>
+    struct wire {
+        template <auto... Ys>
+        using equals = mpl::bool_<((Xs == Ys) && ...)>;
+    };
 
     template <class T>
     struct is_wire : mpl::false_ {};
@@ -66,6 +69,8 @@ namespace dm::macro {
         using out = Out;
         using gate_logic = GateLogic;
         using delay = Delay;
+
+        constexpr static bool compound = false;
     };
 
     template <class T>
@@ -90,8 +95,10 @@ namespace dm::macro {
         using in = In;
         using out = Out;
 
-        template <class C>
-        using f = mpl::call<C, Elements...>;
+        template <class C, class... Ts>
+        using f = mpl::call<C, Ts..., Elements...>;
+
+        constexpr static bool compound = true;
     };
 }
 

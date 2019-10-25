@@ -68,21 +68,22 @@ namespace dm {
 
         DIMETA_ASSERT(mpl::eager::all<FutureEventQueue, is_future_event>::value);
 
-        template <class GateID>
-        using or_fallback_to_global = mpl::if_<
-                mpl::same_as<void>,
-                mpl::always<mpl::unpack<mpl::at<GateID>>>,
-                mpl::cfe<mpl::always>
-        >;
-
-        template <class GateID, class C = mpl::identity>
-        using get_working_netlist_element = mpl::call<mpl::unpack<detail::mpl::map::get<GateID, C>>, WorkingNetlist>;
+        template <class GateID, class IfPresent, class ElseIfNot>
+        using get_working_netlist_element =
+                mpl::call<
+                        mpl::unpack<
+                                detail::mpl::map::branch<GateID,
+                                        IfPresent,
+                                        ElseIfNot>>,
+                WorkingNetlist>;
 
         template <class GateID, class GlobalNetlist>
-        using get_netlist_element_by_id = mpl::call<
-                get_working_netlist_element<GateID, or_fallback_to_global<GateID>>,
-                GlobalNetlist
-        >;
+        using get_netlist_element_by_id =
+                mpl::call<
+                        get_working_netlist_element<GateID,
+                                mpl::cfe<mpl::always>, // when called with global, do nothing
+                                mpl::always<mpl::unpack<mpl::at<GateID>>>>, // get from global instead
+                GlobalNetlist>;
 
         template <class NLE, class PendingEvent>
         using update_netlist_element = mpl::call<

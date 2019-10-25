@@ -126,20 +126,40 @@ namespace dm::macro {
         };
 
 
+       template <bool Compound>
+        struct assembly_flattener;
+
         template <class NewCells, class RenameCounter>
         struct assembly_flattening_state {
             using new_cells = NewCells;
             using rename_counter = RenameCounter;
         };
 
-        template <class Module, class RenameStack, class RenameCounter>
-        struct assembly_flattener;
+        struct rename_assembly_cell {
+            template <class Wires, class RenameStack, class C>
+            using translate = mpl::call<mpl::unpack<mpl::transform<translate_wire<RenameStack>, C>>, Wires>;
 
-        template <class In, class Out, class... Elements, class RenameStack, class RenameCounter>
-        struct assembly_flattener<assembly<In, Out, Elements...>, RenameStack, RenameCounter> {
+            template <class In, class RenameStack>
+            using new_in = translate<In, RenameStack, mpl::cfe<dm::macro::in>>;
+
+            template <class Out, class RenameStack>
+            using new_out = translate<Out, RenameStack, mpl::cfe<dm::macro::out>>;
+
+            template <class In, class Out, class GateLogic, class Delay, class RenameStack>
+            using new_cell = cell<new_in<In, RenameStack>, new_out<Out, RenameStack>, GateLogic, Delay>;
+
+            template <class Cell, class RenameStack>
+            using f = new_cell<typename Cell::in, typename Cell::out, typename Cell::gate_logic, typename Cell::delay, RenameStack>;
+        };
+
+        template <class RenameStack, class RenameCounter, class... Elements>
+        struct flatten_assembly_elements;
+
+        template <template <class...> class RenameStack, class... RenameFrames, class RenameCounter, class... Elements>
+        struct flatten_assembly_elements<RenameStack<RenameFrames...>, RenameCounter, Elements...> {
             using local_wires_in_children = mpl::call<get_local_wires<make_rename_frame_for_wires<RenameCounter>>, Elements...>;
 
-            using updated_stack = mpl::call<mpl::unpack<mpl::push_front<local_wires_in_children>>, RenameStack>;
+            using updated_stack = mpl::call<mpl::push_front<local_wires_in_children>, RenameFrames...>;
             using updated_rename_counter = mpl::eager::plus<mpl::call<mpl::unpack<mpl::size<>>, local_wires_in_children>, RenameCounter>;
 
             template <class OldState, class NewState>
@@ -149,7 +169,9 @@ namespace dm::macro {
             >;
 
             template <class State, class Element>
-            using advance_flattening_state = merge_flattening_step<State, typename assembly_flattener<Element, updated_stack, typename State::rename_counter>::type>;
+            using advance_flattening_state =
+                    merge_flattening_step<State,
+                            typename assembly_flattener<Element::compound>::template f<Element, updated_stack, typename State::rename_counter>>;
 
             using type =
                     mpl::call<
@@ -158,16 +180,136 @@ namespace dm::macro {
                     assembly_flattening_state<mpl::list<>, updated_rename_counter>, Elements...>;
         };
 
-        template <class In, class Out, class GateLogic, class Delay, class RenameStack, class RenameCounter>
-        struct assembly_flattener<cell<In, Out, GateLogic, Delay>, RenameStack, RenameCounter> {
-            template <class Wires, class C>
-            using translate = mpl::call<mpl::unpack<mpl::transform<translate_wire<RenameStack>, C>>, Wires>;
+        template <
+                template <class...> class RenameStack, class... RenameFrames,
+                class RenameCounter,
+                class In0, class Out0, class GL0, class D0
+        >
+        struct flatten_assembly_elements<RenameStack<RenameFrames...>, RenameCounter,
+                cell<In0, Out0, GL0, D0>
+        > {
+            using local_wires_in_children =
+                    mpl::call<
+                            get_local_wires<make_rename_frame_for_wires<RenameCounter>>,
+                            cell<In0, Out0, GL0, D0>>;
 
-            using new_in = translate<In, mpl::cfe<dm::macro::in>>;
-            using new_out = translate<Out, mpl::cfe<dm::macro::out>>;
-            using new_cell = cell<new_in, new_out, GateLogic, Delay>;
+            using updated_stack = mpl::call<mpl::push_front<local_wires_in_children>, RenameFrames...>;
+            using updated_rename_counter = mpl::eager::plus<mpl::call<mpl::unpack<mpl::size<>>, local_wires_in_children>, RenameCounter>;
 
-            using type = assembly_flattening_state<mpl::list<new_cell>, RenameCounter>;
+            using type =
+                    assembly_flattening_state<
+                            mpl::list<
+                                    typename rename_assembly_cell::template f<cell<In0, Out0, GL0, D0>, updated_stack>>,
+                            updated_rename_counter>;
+        };
+
+        template <
+                template <class...> class RenameStack, class... RenameFrames,
+                class RenameCounter,
+                class In0, class Out0, class GL0, class D0,
+                class In1, class Out1, class GL1, class D1
+        >
+        struct flatten_assembly_elements<RenameStack<RenameFrames...>, RenameCounter,
+                cell<In0, Out0, GL0, D0>,
+                cell<In1, Out1, GL1, D1>
+        > {
+            using local_wires_in_children =
+                    mpl::call<
+                            get_local_wires<make_rename_frame_for_wires<RenameCounter>>,
+                            cell<In0, Out0, GL0, D0>,
+                            cell<In1, Out1, GL1, D1>>;
+
+            using updated_stack = mpl::call<mpl::push_front<local_wires_in_children>, RenameFrames...>;
+            using updated_rename_counter = mpl::eager::plus<mpl::call<mpl::unpack<mpl::size<>>, local_wires_in_children>, RenameCounter>;
+
+            using type =
+                    assembly_flattening_state<
+                            mpl::list<
+                                    typename rename_assembly_cell::template f<cell<In0, Out0, GL0, D0>, updated_stack>,
+                                    typename rename_assembly_cell::template f<cell<In1, Out1, GL1, D1>, updated_stack>>,
+                            updated_rename_counter>;
+        };
+
+        template <
+                template <class...> class RenameStack, class... RenameFrames,
+                class RenameCounter,
+                class In0, class Out0, class GL0, class D0,
+                class In1, class Out1, class GL1, class D1,
+                class In2, class Out2, class GL2, class D2
+        >
+        struct flatten_assembly_elements<RenameStack<RenameFrames...>, RenameCounter,
+                cell<In0, Out0, GL0, D0>,
+                cell<In1, Out1, GL1, D1>,
+                cell<In2, Out2, GL2, D2>
+        > {
+            using local_wires_in_children =
+                    mpl::call<
+                            get_local_wires<make_rename_frame_for_wires<RenameCounter>>,
+                            cell<In0, Out0, GL0, D0>,
+                            cell<In1, Out1, GL1, D1>,
+                            cell<In2, Out2, GL2, D2>>;
+
+            using updated_stack = mpl::call<mpl::push_front<local_wires_in_children>, RenameFrames...>;
+            using updated_rename_counter = mpl::eager::plus<mpl::call<mpl::unpack<mpl::size<>>, local_wires_in_children>, RenameCounter>;
+
+            using type =
+                    assembly_flattening_state<
+                            mpl::list<
+                                    typename rename_assembly_cell::template f<cell<In0, Out0, GL0, D0>, updated_stack>,
+                                    typename rename_assembly_cell::template f<cell<In1, Out1, GL1, D1>, updated_stack>,
+                                    typename rename_assembly_cell::template f<cell<In2, Out2, GL2, D2>, updated_stack>>,
+                            updated_rename_counter>;
+        };
+
+        template <
+                template <class...> class RenameStack, class... RenameFrames,
+                class RenameCounter,
+                class In0, class Out0, class GL0, class D0,
+                class In1, class Out1, class GL1, class D1,
+                class In2, class Out2, class GL2, class D2,
+                class In3, class Out3, class GL3, class D3
+        >
+        struct flatten_assembly_elements<RenameStack<RenameFrames...>, RenameCounter,
+                cell<In0, Out0, GL0, D0>,
+                cell<In1, Out1, GL1, D1>,
+                cell<In2, Out2, GL2, D2>,
+                cell<In3, Out3, GL3, D3>
+        > {
+            using local_wires_in_children =
+                    mpl::call<
+                            get_local_wires<make_rename_frame_for_wires<RenameCounter>>,
+                            cell<In0, Out0, GL0, D0>,
+                            cell<In1, Out1, GL1, D1>,
+                            cell<In2, Out2, GL2, D2>,
+                            cell<In3, Out3, GL3, D3>>;
+
+            using updated_stack = mpl::call<mpl::push_front<local_wires_in_children>, RenameFrames...>;
+            using updated_rename_counter = mpl::eager::plus<mpl::call<mpl::unpack<mpl::size<>>, local_wires_in_children>, RenameCounter>;
+
+            using type =
+                    assembly_flattening_state<
+                            mpl::list<
+                                    typename rename_assembly_cell::template f<cell<In0, Out0, GL0, D0>, updated_stack>,
+                                    typename rename_assembly_cell::template f<cell<In1, Out1, GL1, D1>, updated_stack>,
+                                    typename rename_assembly_cell::template f<cell<In2, Out2, GL2, D2>, updated_stack>,
+                                    typename rename_assembly_cell::template f<cell<In3, Out3, GL3, D3>, updated_stack>>,
+                            updated_rename_counter>;
+        };
+
+        template <>
+        struct assembly_flattener<true> {
+            template <class Assembly, class RenameStack, class RenameCounter>
+            using f = typename Assembly::template f<mpl::cfe<flatten_assembly_elements>, RenameStack, RenameCounter>::type;
+        };
+
+        template <>
+        struct assembly_flattener<false> {
+            template <class Cell, class RenameStack, class RenameCounter>
+            using f =
+                    assembly_flattening_state<
+                            mpl::list<
+                                    typename rename_assembly_cell::template f<Cell, RenameStack>>,
+                            RenameCounter>;
         };
 
 
@@ -285,10 +427,11 @@ namespace dm::macro {
                     mpl::call<
                             mpl::unpack<
                                     mpl::fork<
-                                        mpl::listify,
-                                        mpl::size<mpl::make_int_sequence<>>,
-                                        mpl::zip_with<mpl::push_back<Index,
-                                                mpl::cfe<wire_index_info>>>>>,
+                                            mpl::listify,
+                                            mpl::size<mpl::make_int_sequence<>>,
+                                            mpl::zip_with<
+                                                    mpl::push_back<Index,
+                                                            mpl::cfe<wire_index_info>>>>>,
                     typename Cell::in>;
 
             template <class... Cells>
@@ -368,7 +511,7 @@ namespace dm::macro {
         using start_frame = mpl::call<detail::join_element_inputs_and_outputs<detail::make_rename_frame_for_wires<mpl::uint_<0>>>, Module>;
         using start_index = mpl::call<mpl::unpack<mpl::size<>>, start_frame>;
 
-        using initial_flattened = typename detail::assembly_flattener<Module, mpl::list<start_frame>, start_index>::type::new_cells;
+        using initial_flattened = typename detail::assembly_flattener<Module::compound>::template f<Module, mpl::list<start_frame>, start_index>::new_cells;
 
         using flattened = mpl::call<mpl::unpack<detail::attach_output_sentinels<start_frame, typename Module::out>>, initial_flattened>;
 
@@ -380,11 +523,12 @@ namespace dm::macro {
         using fanout_for_cell =
                 mpl::call<
                         mpl::unpack<
-                                dm::detail::mpl::map::get<mpl::call<mpl::unpack<mpl::front<>>, typename Cell::out>,
-                                        mpl::if_<mpl::same_as<void>, mpl::always<mpl::list<>>, mpl::identity>>>,
+                                dm::detail::mpl::map::branch<mpl::call<mpl::unpack<mpl::front<>>, typename Cell::out>,
+                                        mpl::identity,
+                                        mpl::always<mpl::list<>>>>,
                 connection_map>;
 
-        template <class Cell, class Index>
+        template <class Cell>
         using netlist_element_from_cell = dm::netlist_element<
                 dm::index_constant<mpl::call<mpl::unpack<dm::detail::mpl::map::get<typename Cell::delay>>, typename delay_data::cell_index_map>::value>,
                 mpl::call<mpl::unpack<mpl::transform<mpl::always<dm::logic_constant<dm::logic::X>>>>, typename Cell::in>,
@@ -395,11 +539,8 @@ namespace dm::macro {
 
         using netlist =
                 mpl::call<
-                        mpl::unpack<mpl::fork<
-                                mpl::listify,
-                                mpl::size<mpl::make_int_sequence<>>,
-                                mpl::zip_with<
-                                        mpl::cfe<netlist_element_from_cell>>>>,
+                        mpl::unpack<
+                                mpl::transform<mpl::cfe<netlist_element_from_cell>>>,
                 flattened>;
 
         using type = compiled_module<netlist, typename delay_data::delay_map, connection_map, start_frame>;

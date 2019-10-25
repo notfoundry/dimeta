@@ -44,6 +44,17 @@ namespace dm::detail::mpl::map {
         using f = typename C::template f<decltype(lookup((inherit<mpl::always<Es>...>*)0))>;
     };
 
+    template <class K, class TF, class FF, class C = mpl::identity>
+    struct branch {
+        template <template <class...> class L, class V>
+        static typename TF::template f<V> lookup(mpl::always<L<K, V>>*);
+
+        static typename FF::template f<K> lookup(...);
+
+        template <class... Es>
+        using f = typename C::template f<decltype(lookup((inherit<mpl::always<Es>...>*)0))>;
+    };
+
     template <class K, class C = mpl::identity>
     struct contains {
         template <class... Es>
@@ -60,6 +71,19 @@ namespace dm::detail::mpl::map {
     struct replace {
         template <class... Es>
         using f = mpl::call<erase<K, mpl::push_back<mpl::list<K, V>, C>>, Es...>;
+    };
+
+    template <class C = mpl::listify>
+    struct replace_all {
+        template <class InK, class InV, class FromM>
+        using impl = mpl::call<mpl::unpack<
+                get<InK, mpl::if_<
+                        mpl::same_as<void>, mpl::always<mpl::list<InK, InV>>, mpl::identity
+                >>
+        >, FromM>;
+
+        template <class InM, class FromM>
+        using f = mpl::call<mpl::unpack<mpl::transform<mpl::unpack<mpl::push_back<FromM, mpl::cfe<impl>>>, C>>, InM>;
     };
 
     template <class E, class F, class C = mpl::listify>
@@ -84,19 +108,6 @@ namespace dm::detail::mpl::map {
     struct insert {
         template <class... Es>
         using f = mpl::call<mpl::if_<contains<K>, C, mpl::push_back<mpl::list<K, V>, C>>, Es...>;
-    };
-
-    template <class C = mpl::listify>
-    struct replace_all {
-        template <class InK, class InV, class FromM>
-        using impl = mpl::call<mpl::unpack<
-                get<InK, mpl::if_<
-                        mpl::same_as<void>, mpl::always<mpl::list<InK, InV>>, mpl::identity
-                >>
-        >, FromM>;
-
-        template <class InM, class FromM>
-        using f = mpl::call<mpl::unpack<mpl::transform<mpl::unpack<mpl::push_back<FromM, mpl::cfe<impl>>>, C>>, InM>;
     };
 
     template <class C = mpl::listify>
